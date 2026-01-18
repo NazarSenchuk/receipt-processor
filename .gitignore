@@ -3,3 +3,4 @@ test.tfvars
 *.tfstate.*
 *.lock.*
 app-config.js
+terraform/.terraform
