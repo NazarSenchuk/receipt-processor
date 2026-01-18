@@ -72,7 +72,6 @@ The architecture is scalable, fault-tolerant, and fully managed using AWS servic
    ```bash
    git clone https://github.com/yourusername/receipt-processing-system.git
    cd receipt-processing-system
-````
 
 2. **Deploy Infrastructure**
 
