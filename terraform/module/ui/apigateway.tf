@@ -1,12 +1,24 @@
-resource "aws_api_gateway_rest_api" "main" {
+locals {
+  cors_config = {
+    headers = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
+    methods = "'GET,OPTIONS,POST,PUT,DELETE'"
+    origin  = "'*'"
+  }
+  
+  cors_response_params = {
+    "method.response.header.Access-Control-Allow-Headers" = local.cors_config.headers
+    "method.response.header.Access-Control-Allow-Methods" = local.cors_config.methods
+    "method.response.header.Access-Control-Allow-Origin"  = local.cors_config.origin
+  }
+}
 
-  name = "receipts"
+resource "aws_api_gateway_rest_api" "main" {
+  name = var.ui_config.api_name
   endpoint_configuration {
     types = ["REGIONAL"]
   }
 }
 
-# apigateway.tf
 resource "aws_api_gateway_authorizer" "cognito" {
   name          = "cognito-authorizer"
   type          = "COGNITO_USER_POOLS"
@@ -16,110 +28,95 @@ resource "aws_api_gateway_authorizer" "cognito" {
   authorizer_result_ttl_in_seconds = 300
 }
 
-
-
-resource "aws_api_gateway_resource" "root" {
+resource "aws_api_gateway_resource" "api" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id = aws_api_gateway_rest_api.main.root_resource_id
-  path_part = "api"
+  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "api"
 }
-resource "aws_api_gateway_method" "GET" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = "GET"
 
+# GET method
+resource "aws_api_gateway_method" "get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.api.id
+  http_method   = "GET"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.cognito.id
 }
 
-
-
 resource "aws_api_gateway_integration" "getmessages" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.GET.http_method
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.api.id
+  http_method             = aws_api_gateway_method.get.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri = aws_lambda_function.getmessages.invoke_arn
+  uri                     = aws_lambda_function.getmessages.invoke_arn
 }
 
-
-resource "aws_api_gateway_method" "OPTIONS" {
+# OPTIONS method for CORS
+resource "aws_api_gateway_method" "options" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.root.id
+  resource_id   = aws_api_gateway_resource.api.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
-# MOCK integration for OPTIONS
-resource "aws_api_gateway_integration" "OPTIONS" {
+resource "aws_api_gateway_integration" "options" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.OPTIONS.http_method
+  resource_id = aws_api_gateway_resource.api.id
+  http_method = aws_api_gateway_method.options.http_method
   type        = "MOCK"
 
   request_templates = {
-    "application/json" = "{\"statusCode\": 200}"
+    "application/json" = jsonencode({ statusCode = 200 })
   }
 }
 
-# Method Response for OPTIONS (CORS headers)
-resource "aws_api_gateway_method_response" "OPTIONS" {
+resource "aws_api_gateway_method_response" "options" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.OPTIONS.http_method
+  resource_id = aws_api_gateway_resource.api.id
+  http_method = aws_api_gateway_method.options.http_method
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    for k, v in local.cors_response_params : k => true
   }
 }
 
-# Integration Response for OPTIONS
-resource "aws_api_gateway_integration_response" "OPTIONS" {
+resource "aws_api_gateway_method_response" "get" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.OPTIONS.http_method
-  status_code = aws_api_gateway_method_response.OPTIONS.status_code
-
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS,POST,PUT,DELETE'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
-  }
-}
-
-resource "aws_api_gateway_method_response" "GET" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.GET.http_method
+  resource_id = aws_api_gateway_resource.api.id
+  http_method = aws_api_gateway_method.get.http_method
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin"  = true
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
+    for k, v in local.cors_response_params : k => true
   }
 }
 
-resource "aws_api_gateway_integration_response" "GET" {
+resource "aws_api_gateway_integration_response" "options" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.GET.http_method
-  status_code = aws_api_gateway_method_response.GET.status_code
+  resource_id = aws_api_gateway_resource.api.id
+  http_method = aws_api_gateway_method.options.http_method
+  status_code = aws_api_gateway_method_response.options.status_code
 
-  response_parameters = {
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS,POST,PUT,DELETE'"
-  }
+  response_parameters = local.cors_response_params
+}
+
+resource "aws_api_gateway_integration_response" "get" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.api.id
+  http_method = aws_api_gateway_method.get.http_method
+  status_code = aws_api_gateway_method_response.get.status_code
+
+  response_parameters = local.cors_response_params
 }
 
 resource "aws_api_gateway_deployment" "main" {
   rest_api_id = aws_api_gateway_rest_api.main.id
-  depends_on  = [aws_api_gateway_integration.getmessages , aws_api_gateway_integration_response.GET ,aws_api_gateway_integration_response.OPTIONS ] 
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_api_gateway_stage" "main" {

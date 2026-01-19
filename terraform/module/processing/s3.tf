@@ -1,15 +1,14 @@
-resource "aws_s3_bucket" "main" {
-  bucket = "${var.environment}-receipts141"
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
 
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+resource "aws_s3_bucket" "main" {
+  bucket = "${var.environment}-receipts-${random_id.bucket_suffix.hex}"
+  tags = var.tags
 }
 
 resource "aws_s3_bucket_policy" "checker_main_policy" {
   bucket = aws_s3_bucket.main.id
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -30,7 +29,6 @@ resource "aws_s3_bucket_policy" "checker_main_policy" {
         }
         Action   = "s3:PutBucketNotification"
         Resource = aws_s3_bucket.main.arn
-        
       }
     ]
   })

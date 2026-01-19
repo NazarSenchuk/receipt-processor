@@ -7,10 +7,7 @@ resource "aws_cognito_user_pool" "main" {
 
   }
   auto_verified_attributes = ["email"]
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+  tags = var.tags
 }
 
 
@@ -19,14 +16,16 @@ resource "aws_cognito_user_pool_client" "web_client" {
   user_pool_id = aws_cognito_user_pool.main.id
   generate_secret = false
 
-  callback_urls = [
+  callback_urls = compact([
     "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}",
-    "http://localhost:8080"
-  ]
-  logout_urls = [
+    var.ui_config.custom_domain != "" ? "https://${var.ui_config.custom_domain}": null,
+    "http://localhost:8080",
+  ])
+  logout_urls = compact([
     "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}",
+    var.ui_config.custom_domain != "" ? "https://${var.ui_config.custom_domain}": null,
      "http://localhost:8080"
-  ]
+  ])
 
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows = ["code"]

@@ -4,11 +4,7 @@ resource "aws_sqs_queue" "shared_dlq" {
   delay_seconds             = 0
   max_message_size          = 1048576
   message_retention_seconds = 1209600 
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-    Type        = "DLQ"
-  }
+  tags = var.tags
 }
 
 resource "aws_sqs_queue" "injection" {
@@ -23,10 +19,7 @@ resource "aws_sqs_queue" "injection" {
         maxReceiveCount     = 2
     })
 
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+  tags = var.tags
 }
 
 resource "aws_sqs_queue" "processing" {
@@ -42,17 +35,11 @@ resource "aws_sqs_queue" "processing" {
         maxReceiveCount     = 2
     })
 
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+  tags = var.tags
 }
 
 
-resource "aws_sqs_queue_policy" "injection" {
-  queue_url = aws_sqs_queue.injection.id
-  policy    = data.aws_iam_policy_document.injection.json
-}
+
 
 
 resource "aws_lambda_event_source_mapping" "injection_queue_trigger" {

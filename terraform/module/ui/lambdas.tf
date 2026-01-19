@@ -10,10 +10,7 @@ resource "aws_lambda_function" "getmessages" {
         }
     }
     timeout = 3
-    tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+    tags = var.tags
 }
 
 resource "aws_lambda_permission" "apigw" {

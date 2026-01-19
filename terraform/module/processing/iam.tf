@@ -14,16 +14,13 @@ resource "aws_iam_role" "injection" {
       },
     ]
   })
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  } 
+  tags = var.tags
 }
 
 
 
 resource "aws_iam_role" "processing" {
-  name = "Provision"
+  name = "Provisioning"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -38,10 +35,7 @@ resource "aws_iam_role" "processing" {
       },
     ]
   })
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  } 
+  tags = var.tags
 }
 
 
@@ -187,4 +181,9 @@ data "aws_iam_policy_document" "injection" {
       values   = [aws_sns_topic.main.arn]
     }
   }
+}
+
+resource "aws_sqs_queue_policy" "injection" {
+  queue_url = aws_sqs_queue.injection.id
+  policy    = data.aws_iam_policy_document.injection.json
 }

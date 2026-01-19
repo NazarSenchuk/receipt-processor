@@ -26,13 +26,10 @@ resource "aws_dynamodb_table" "main" {
   }
 
   global_secondary_index {
-    name            = "nessage_id-index"
+    name            = "message_id-index"
     hash_key        = "message_id"
     projection_type = "ALL"
   }
 
-  tags = {
-    App         = "Receipt-Processor"
-    Environment = var.environment
-  }
+  tags = var.tags
 }

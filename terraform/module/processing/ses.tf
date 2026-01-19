@@ -12,14 +12,12 @@ resource "aws_ses_receipt_rule" "rule_1" {
   enabled       = true
   scan_enabled  = false
   tls_policy    = "Optional"
-
   s3_action {
     bucket_name           = aws_s3_bucket.main.id
     object_key_prefix     = "inbox/"
     topic_arn            = aws_sns_topic.main.arn
     position             = 1
   }
-
   depends_on = [aws_ses_receipt_rule_set.main]
 }
 

@@ -1,3 +1,8 @@
+
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
 resource "aws_s3_bucket" "frontend_bucket" {
   bucket = "${var.environment}-receipts-frontend-${random_id.bucket_suffix.hex}"
   force_destroy = true
@@ -9,11 +14,6 @@ resource "aws_s3_bucket_website_configuration" "frontend_hosting" {
   index_document {
     suffix = "index.html"
   }
-
-}
-
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend_access" {
@@ -55,12 +55,4 @@ resource "null_resource" "upload_frontend" {
         --delete
     EOT
   }
-
-  depends_on = [
-    local_file.app_config,
-    aws_s3_bucket_policy.frontend_policy,
-    aws_s3_bucket_public_access_block.frontend_access,
-   
-    aws_cloudfront_distribution.frontend_distribution,
-  ]
 }
