@@ -109,5 +109,5 @@ The architecture is scalable, fault-tolerant, and fully managed using AWS servic
   * Access the frontend web console to view processed receipt data.
 * **API Access**
 
-  * Use REST API endpoints with JWT tokens issued by Cognito.
+* Use REST API endpoints with JWT tokens issued by Cognito.
 

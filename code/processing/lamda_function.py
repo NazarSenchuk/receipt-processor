@@ -288,8 +288,10 @@ def lambda_handler(event, context):
             
         except Exception as e:
             print(f"Error processing record: {str(e)}")
+            # Continue processing other records if there are multiple
             continue
     
+    # Return success even if no records were processed
     return {
         'statusCode': 200,
         'body': json.dumps({

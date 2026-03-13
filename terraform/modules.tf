@@ -1,5 +1,4 @@
-module "processing"{
-    source ="./module/processing"
+cc
     processing_config = var.processing_config
     environment = var.environment
     tags = var.tags
